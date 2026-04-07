@@ -9,7 +9,7 @@ export class AuctionRoom extends DurableObject<Env> {
 
 		this.ctx.blockConcurrencyWhile(async () => {
 			this.ctx.storage.sql.exec(`
-				CREATE TABLE IF NOT EXISTS lifecycle_runner
+				CREATE TABLE IF NOT EXISTS lifecycle_counter
 				(
 					id INTEGER PRIMARY KEY,
 					value INTEGER NOT NULL
@@ -22,7 +22,7 @@ export class AuctionRoom extends DurableObject<Env> {
 		this.memoryCounter += 1;
 
 		// ⚠️ Normally in SQLite, this read and write would result in a race condition
-		// ✅ Durable Objects handles race conditions
+		// ✅ Durable Objects are single-threaded and handles the race conditions
 
 		// read
 		const current =
@@ -30,7 +30,7 @@ export class AuctionRoom extends DurableObject<Env> {
 
 		const next = current + 1;
 
-		// write
+		// write (parameterized query)
 		this.ctx.storage.sql.exec('INSERT OR REPLACE INTO lifecycle_counter (id, value) VALUES (1, ?)', next);
 
 		return { memory: this.memoryCounter, durable: next };

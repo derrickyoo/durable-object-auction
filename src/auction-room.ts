@@ -80,7 +80,7 @@ export class AuctionRoom extends DurableObject<Env> {
 		);
 	}
 
-	listRecentBids(userId: string, amount: number) {
+	listRecentBids() {
 		return this.ctx.storage.sql
 			.exec<{
 				user_id: string;

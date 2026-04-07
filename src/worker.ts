@@ -28,6 +28,11 @@ export default {
 			return new Response(null, { status: 204 });
 		}
 
+		if (workerURL.pathname === '/bids') {
+			const bids = await stub.listRecentBids();
+			return Response.json(bids);
+		}
+
 		const details = await stub.getDetails();
 		return Response.json(details);
 	},

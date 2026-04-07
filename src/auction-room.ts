@@ -55,16 +55,35 @@ export class AuctionRoom extends DurableObject<Env> {
 		}
 	}
 
-	async initAuction(input: { title: string }) {
+	async initAuction(input: { title: string; startingPrice: number }) {
+		const now = Date.now();
 		this.title = input.title;
+
+		this.ctx.storage.sql.exec(
+			`INSERT OR IGNORE INTO auction_state
+			 (id, title, status, starting_price, reserve_price, current_price, created_at, updated_at)
+			VALUES (?, ?, 'draft', ?, ?, ?, ?, ?)`,
+			this.ctx.id.toString(),
+			input.title,
+			input.startingPrice,
+			input.startingPrice,
+			input.startingPrice,
+			now,
+			now,
+		);
 	}
 
 	async getDetails() {
-		return {
-			auctionId: this.ctx.id.toString(),
-			title: this.title,
-			status: !this.title ? 'not initialized' : 'active',
-		};
+		return this.ctx.storage.sql
+			.exec<{
+				id: string;
+				title: string;
+				status: string;
+				starting_price: number;
+				current_price: number;
+				created_at: number;
+			}>('SELECT id, title, status, starting_price, current_price, created_at FROM auction_state WHERE id = ?', this.ctx.id.toString())
+			.one();
 	}
 
 	addBid(userId: string, amount: number) {

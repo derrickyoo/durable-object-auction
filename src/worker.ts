@@ -13,7 +13,7 @@ export default {
 			}
 
 			const stub = env.AUCTION.getByName(auctionId);
-			await stub.initAuction({ title: body.title });
+			await stub.initAuction({ title: body.title, startingPrice: 100 });
 
 			return new Response(null, { status: 204 });
 		}

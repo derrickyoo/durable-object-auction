@@ -86,18 +86,18 @@ export class AuctionRoom extends DurableObject<Env> {
 			.one();
 	}
 
-	addBid(userId: string, amount: number) {
-		this.ctx.storage.sql.exec(
-			`INSERT INTO bids (id, auction_id, user_id, amount, created_at, idempotency_key)
-			VALUES (?, ?, ?, ?, ?, ?)`,
-			crypto.randomUUID(),
-			this.ctx.id.toString(),
-			userId,
-			amount,
-			Date.now(),
-			`demo - ${crypto.randomUUID()}`,
-		);
-	}
+	// addBid(userId: string, amount: number) {
+	// 	this.ctx.storage.sql.exec(
+	// 		`INSERT INTO bids (id, auction_id, user_id, amount, created_at, idempotency_key)
+	// 		VALUES (?, ?, ?, ?, ?, ?)`,
+	// 		crypto.randomUUID(),
+	// 		this.ctx.id.toString(),
+	// 		userId,
+	// 		amount,
+	// 		Date.now(),
+	// 		`demo - ${crypto.randomUUID()}`,
+	// 	);
+	// }
 
 	listRecentBids() {
 		return this.ctx.storage.sql
@@ -117,5 +117,45 @@ export class AuctionRoom extends DurableObject<Env> {
 				created_at: number;
 			}>('SELECT user_id, amount, created_at FROM bids ORDER BY created_at DESC LIMIT ? OFFSET ?', limit, offset)
 			.toArray();
+	}
+
+	placeBid(input: { userId: string; amount: number; idempotencyKey: string }) {
+		const state = this.ctx.storage.sql
+			.exec<{
+				status: string;
+				current_price: number;
+			}>('SELECT status, current_price FROM auction_state WHERE id = ?', this.ctx.id.toString())
+			.toArray()[0];
+
+		if (!state) throw new Error('AUCTION_NOT_FOUND');
+		if (state.status !== 'active') throw new Error('AUCTION_NOT_ACTIVE');
+		if (input.amount <= state.current_price) throw new Error('BID_TOO_LOW');
+
+		const now = Date.now();
+
+		this.ctx.storage.sql.exec(
+			`INSERT INTO bids (id, auction_id, user_id, amount, created_at, idempotency_key)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+			crypto.randomUUID(),
+			this.ctx.id.toString(),
+			input.userId,
+			input.amount,
+			now,
+			input.idempotencyKey,
+		);
+
+		this.ctx.storage.sql.exec(
+			'UPDATE auction_state SET current_price = ?, winner_user_id = ?, updated_at = ? WHERE id = ?',
+			input.amount,
+			input.userId,
+			now,
+			this.ctx.id.toString(),
+		);
+
+		return {
+			accepted: true,
+			currentPrice: input.amount,
+			winnerUserId: input.userId,
+		};
 	}
 }

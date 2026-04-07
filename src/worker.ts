@@ -19,12 +19,22 @@ export default {
 		}
 
 		if (request.method === 'POST' && workerURL.pathname === '/bids') {
-			const body = (await request.json()) as { userId?: string; amount?: number };
+			const body = (await request.json()) as { userId?: string; amount?: number; idempotencyKey: string };
 			if (!body.userId || !body.amount) {
 				return new Response('Invalid payload', { status: 400 });
 			}
 
-			await stub.addBid(body.userId, body.amount);
+			// await stub.addBid(body.userId, body.amount);
+
+			try {
+				await stub.placeBid({ userId: body.userId, amount: body.amount, idempotencyKey: body.idempotencyKey });
+			} catch (err: any) {
+				if (err.message === 'AUCTION_NOT_FOUND') return new Response('Not found', { status: 404 });
+				if (err.message === 'AUCTION_NOT_ACTIVE') return new Response('Not active', { status: 404 });
+				if (err.message === 'BID_TOO_LOW') return new Response('Bid too low', { status: 404 });
+
+				throw err;
+			}
 			return new Response(null, { status: 204 });
 		}
 

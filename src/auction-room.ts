@@ -14,7 +14,8 @@ export class AuctionRoom extends DurableObject<Env> {
 	async getDetails() {
 		return {
 			auctionId: this.ctx.id.toString(),
-			status: 'not initialized',
+			title: this.title,
+			status: !this.title ? 'not initialized' : 'active',
 		};
 	}
 }

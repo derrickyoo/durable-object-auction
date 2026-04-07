@@ -108,4 +108,14 @@ export class AuctionRoom extends DurableObject<Env> {
 			}>('SELECT user_id, amount, created_at FROM bids ORDER BY created_at DESC LIMIT 20')
 			.toArray();
 	}
+
+	getHistory(limit = 50, offset = 0) {
+		return this.ctx.storage.sql
+			.exec<{
+				user_id: string;
+				amount: number;
+				created_at: number;
+			}>('SELECT user_id, amount, created_at FROM bids ORDER BY created_at DESC LIMIT ? OFFSET ?', limit, offset)
+			.toArray();
+	}
 }

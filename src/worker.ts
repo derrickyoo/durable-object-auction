@@ -33,6 +33,13 @@ export default {
 			return Response.json(bids);
 		}
 
+		if (workerURL.pathname === '/history') {
+			const limit = Number(workerURL.searchParams.get('limit') ?? 50);
+			const offset = Number(workerURL.searchParams.get('offset') ?? 0);
+			const history = await stub.getHistory(limit, offset);
+			return Response.json(history);
+		}
+
 		const details = await stub.getDetails();
 		return Response.json(details);
 	},
